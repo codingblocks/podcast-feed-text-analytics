@@ -1,28 +1,93 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Component } from 'react'
+import FeedForm from './FeedForm'
+const request = require('request')
+const parsePodcast = require('node-podcast-parser')
 
 class App extends Component {
-  render() {
+  constructor (props) {
+    super(props)
+    this.state = {}
+  }
+
+  analyzeFeed (config) {
+    request(config.feed, (err, res, data) => {
+      if (err) {
+        console.error('Network error', err)
+        return
+      }
+
+      parsePodcast(data, (err, data) => {
+        if (err) {
+          console.error('Parsing error', err)
+        }
+
+        let requestBody = {
+          documents: data.episodes.map((e, i) => {
+            return {
+              language: 'en',
+              id: i + 1,
+              text: e.description
+            }
+          })
+        }
+
+        const endpoint = `https://eastus.api.cognitive.microsoft.com/text/analytics/v2.0/${config.analyzerType}`
+
+        fetch(endpoint, {
+          method: 'POST',
+          mode: 'cors', // no-cors, cors, *same-origin
+          credentials: 'same-origin', // include, same-origin, *omit
+          headers: {
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': config.key
+          },
+          redirect: 'error', // manual, *follow, error
+          referrer: 'no-referrer', // no-referrer, *client
+          body: JSON.stringify(requestBody) // body data type must match "Content-Type" header
+        }).then(response => {
+          response.json().then(result => {
+            let episodes = result.documents.map(i => i[config.analyzerType])
+            let tags = this.countPhrases({}, episodes)
+            let tagArray = []
+            for (let t in tags) {
+              tagArray.push(tags[t])
+            }
+            tagArray = tagArray.sort((a, b) => b.count - a.count) // reverse order
+            this.setState({
+              tagCloudHtml: tagArray
+                .map(
+                  i => `<li style="margin: 5px;">${i.count} ${i.tagName}</li>`
+                )
+                .join(``)
+            })
+          })
+        })
+      })
+    })
+  }
+
+  countPhrases (phraseCounts, episodes) {
+    episodes.forEach(e => {
+      e.forEach(p => {
+        let np = p.name ? p.name.toLowerCase() : p.toLowerCase()
+        phraseCounts[np] = {
+          tagName: np,
+          count: phraseCounts[np] ? phraseCounts[np].count + 1 : 1
+        }
+      })
+    })
+
+    return phraseCounts
+  }
+
+  render () {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div className='app-container'>
+        <FeedForm onSubmit={this.analyzeFeed.bind(this)} />
+        <ul dangerouslySetInnerHTML={{ __html: this.state.tagCloudHtml }} />
       </div>
-    );
+    )
   }
 }
 
-export default App;
+export default App
