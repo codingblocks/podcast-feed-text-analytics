@@ -21,19 +21,19 @@ class App extends Component {
           console.error('Parsing error', err)
         }
 
-        let requestBody = {
+        const requestBody = {
           documents: data.episodes.map((e, i) => {
             return {
               language: 'en',
               id: i + 1,
-              text: e.description
+              text: e[config.feedField]
             }
           })
         }
 
         const endpoint = `https://eastus.api.cognitive.microsoft.com/text/analytics/v2.0/${config.analyzerType}`
 
-        fetch(endpoint, {
+        window.fetch(endpoint, {
           method: 'POST',
           mode: 'cors', // no-cors, cors, *same-origin
           credentials: 'same-origin', // include, same-origin, *omit

@@ -4,7 +4,7 @@ class FeedForm extends Component {
   submit (event) {
     event.preventDefault()
 
-    const inputs = ['feed', 'key', 'analyzerType']
+    const inputs = ['feed', 'key', 'analyzerType', 'feedField']
     let config = {}
     inputs.forEach(i => {
       config[i] = event.target.elements[i].value
@@ -53,6 +53,17 @@ class FeedForm extends Component {
           >
             <option value='entities'>Entities</option>
             <option value='keyPhrases'>Key Phrases</option>
+          </select>
+        </div>
+        <div className='form-group'>
+          <label htmlFor='feedField'>Feed Field:</label>
+          <select
+            className='form-control'
+            id='feedField'
+            name='feedField'
+          >
+            <option value='description'>Description</option>
+            <option value='title'>EpisodeTitle</option>
           </select>
         </div>
         <button className='btn btn-primary'>
